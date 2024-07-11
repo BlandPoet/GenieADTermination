@@ -3,7 +3,7 @@ param (
     [string]$username,
     [string]$targetOU = "OU=Insert OU here,DC=domain name,DC=com"
 )
-# on string targetOU, put in the desired ou and your domain name
+# on string targetOU, put in the desired ou and your domain name OU is case sensitive 
 
 Import-Module ActiveDirectory
 
