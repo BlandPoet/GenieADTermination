@@ -1,0 +1,86 @@
+param (
+    [string]$fullname,
+    [string]$username,
+    [string]$targetOU = "OU=Insert OU here,DC=domain name,DC=com"
+)
+# on string targetOU, put in the desired ou and your domain name
+
+Import-Module ActiveDirectory
+
+<#
+Notes:
+
+Goal: Automate the process in terminating a users account in AD
+        - Needs to remove/do the following:
+            Manager
+            Memberships
+            Move to marked for deletion ou
+            Disables account
+
+
+#>
+
+
+
+# Function to clear the manager attribute
+function Clear-Manager {
+    param (
+        [string]$username
+    )
+
+    Set-ADUser -Identity $username -Manager $null
+    Write-Output "POOF! Cleared the manager for user $username"
+}
+
+# Function to disable a user
+function Disable-UserAccount {
+    param (
+        [string]$fullname,
+        [string]$username,
+        [string]$targetOU
+    )
+
+    $user = Get-ADUser -Identity $username -ErrorAction SilentlyContinue
+    if ($null -eq $user) {
+        Write-Output "The user '$username' does not exist in Active Directory."
+        return
+    }
+
+    if ($user.Enabled -eq $false) {
+        Write-Output "The account '$username' is already disabled."
+        return
+    }
+
+    if ($user.Name -ne $fullname) {
+        Write-Output "The full name '$fullname' does not match the full name of the user '$username'."
+        return
+    }
+
+    Write-Output "User: $username"
+    $confirmation = Read-Host -Prompt "Are you sure you want to disable $username? (yes/no)"
+    if ($confirmation -ne "yes") {
+        Write-Output "Action cancelled."
+        return
+    }
+
+    Disable-ADAccount -Identity $username
+
+    $groups = Get-ADUser -Identity $username -Property MemberOf | Select-Object -ExpandProperty MemberOf
+    foreach ($group in $groups) {
+        Remove-ADGroupMember -Identity $group -Members $username -Confirm:$false
+    }
+
+    Move-ADObject -Identity $user.DistinguishedName -TargetPath $targetOU
+
+    Clear-Manager -username $username
+
+    Write-Output "User $username has been disabled, removed from all groups, moved to Marked for Deletion"
+}
+
+# Da loop function so you can disable multiple users
+do {
+    $fullname = Read-Host -Prompt 'Enter the full name of the account to disable'
+    $username = Read-Host -Prompt 'Enter the username of the account to disable'
+    Disable-UserAccount -username $username -fullname $fullname -targetOU $targetOU
+    $choice = Read-Host -Prompt "Do you want to disable another user? (yes/no)"
+} while ($choice -eq "yes")
