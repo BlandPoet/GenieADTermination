@@ -1,3 +1,6 @@
+
+
+
 param (
     [string]$fullname,
     [string]$username,
@@ -17,6 +20,11 @@ Goal: Automate the process in terminating a users account in AD
             Move to marked for deletion ou
             Disables account
 
+Before using this in a live environment. i would strongly test to ensure that this will work in your organization. Im still pretty new in my powershell journey and i cannot ensure how
+well it will function in your organization. You have been warned <3
+
+Also to note, ive added a function that check if both the username and first name last name match. but verify that you are infact deleting the correct user or its gonna be a headache for 
+everyone involved
 
 #>
 
